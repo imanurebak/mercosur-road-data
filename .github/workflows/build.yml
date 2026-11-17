@@ -1,0 +1,47 @@
+name: Generar paquetes de regiones
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"   # lunes 05:17 UTC (02:17 en Argentina)
+  workflow_dispatch:
+    inputs:
+      regions:
+        description: "IDs separados por espacio (vacío = todas). Ej: ar-misiones py"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar osmium
+        run: pip install osmium
+
+      - name: Generar paquetes
+        run: python3 scripts/build_all.py ${{ github.event.inputs.regions }}
+
+      - name: Publicar en la release "data"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view data >/dev/null 2>&1 || \
+            gh release create data --title "Paquetes de regiones" \
+              --notes "Datos © colaboradores de OpenStreetMap (ODbL). Se actualizan cada lunes."
+          # Con una sola region (prueba) no se pisa el catalogo completo.
+          if [ -z "${{ github.event.inputs.regions }}" ]; then
+            gh release upload data out/* --clobber
+          else
+            gh release upload data out/*.json.gz --clobber
+            gh release view data --json assets -q '.assets[].name' | grep -q '^index.json$' || \
+              gh release upload data out/index.json --clobber
+          fi

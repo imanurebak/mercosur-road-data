@@ -1,0 +1,335 @@
+{
+ "countries": {
+  "AR": "Argentina",
+  "BR": "Brasil",
+  "PY": "Paraguay",
+  "UY": "Uruguay",
+  "BO": "Bolivia"
+ },
+ "regions": [
+  {
+   "id": "ar-buenos-aires",
+   "name": "Buenos Aires",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/buenos_aires-latest.osm.pbf"
+  },
+  {
+   "id": "ar-buenos-aires-city",
+   "name": "Ciudad de Buenos Aires",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/buenos_aires_city-latest.osm.pbf"
+  },
+  {
+   "id": "ar-catamarca",
+   "name": "Catamarca",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/catamarca-latest.osm.pbf"
+  },
+  {
+   "id": "ar-chaco",
+   "name": "Chaco",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/chaco-latest.osm.pbf"
+  },
+  {
+   "id": "ar-chubut",
+   "name": "Chubut",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/chubut-latest.osm.pbf"
+  },
+  {
+   "id": "ar-cordoba",
+   "name": "Córdoba",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/cordoba-latest.osm.pbf"
+  },
+  {
+   "id": "ar-corrientes",
+   "name": "Corrientes",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/corrientes-latest.osm.pbf"
+  },
+  {
+   "id": "ar-entre-rios",
+   "name": "Entre Ríos",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/entre_rios-latest.osm.pbf"
+  },
+  {
+   "id": "ar-formosa",
+   "name": "Formosa",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/formosa-latest.osm.pbf"
+  },
+  {
+   "id": "ar-jujuy",
+   "name": "Jujuy",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/jujuy-latest.osm.pbf"
+  },
+  {
+   "id": "ar-la-pampa",
+   "name": "La Pampa",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/la_pampa-latest.osm.pbf"
+  },
+  {
+   "id": "ar-la-rioja",
+   "name": "La Rioja",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/la_rioja-latest.osm.pbf"
+  },
+  {
+   "id": "ar-mendoza",
+   "name": "Mendoza",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/mendoza-latest.osm.pbf"
+  },
+  {
+   "id": "ar-misiones",
+   "name": "Misiones",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/misiones-latest.osm.pbf"
+  },
+  {
+   "id": "ar-neuquen",
+   "name": "Neuquén",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/neuquen-latest.osm.pbf"
+  },
+  {
+   "id": "ar-rio-negro",
+   "name": "Río Negro",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/rio_negro-latest.osm.pbf"
+  },
+  {
+   "id": "ar-salta",
+   "name": "Salta",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/salta-latest.osm.pbf"
+  },
+  {
+   "id": "ar-san-juan",
+   "name": "San Juan",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/san_juan-latest.osm.pbf"
+  },
+  {
+   "id": "ar-san-luis",
+   "name": "San Luis",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/san_luis-latest.osm.pbf"
+  },
+  {
+   "id": "ar-santa-cruz",
+   "name": "Santa Cruz",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/santa_cruz-latest.osm.pbf"
+  },
+  {
+   "id": "ar-santa-fe",
+   "name": "Santa Fe",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/santa_fe-latest.osm.pbf"
+  },
+  {
+   "id": "ar-santiago-del-estero",
+   "name": "Santiago del Estero",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/santiago_del_estero-latest.osm.pbf"
+  },
+  {
+   "id": "ar-tierra-del-fuego",
+   "name": "Tierra del Fuego",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/tierra_del_fuego-latest.osm.pbf"
+  },
+  {
+   "id": "ar-tucuman",
+   "name": "Tucumán",
+   "country": "AR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/argentina/tucuman-latest.osm.pbf"
+  },
+  {
+   "id": "br-parana",
+   "name": "Paraná",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/south/parana-latest.osm.pbf"
+  },
+  {
+   "id": "br-santa-catarina",
+   "name": "Santa Catarina",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/south/santa-catarina-latest.osm.pbf"
+  },
+  {
+   "id": "br-rio-grande-do-sul",
+   "name": "Rio Grande do Sul",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/south/rio-grande-do-sul-latest.osm.pbf"
+  },
+  {
+   "id": "br-sao-paulo",
+   "name": "São Paulo",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/southeast/sao-paulo-latest.osm.pbf"
+  },
+  {
+   "id": "br-rio-de-janeiro",
+   "name": "Rio de Janeiro",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/southeast/rio-de-janeiro-latest.osm.pbf"
+  },
+  {
+   "id": "br-minas-gerais",
+   "name": "Minas Gerais",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/southeast/minas-gerais-latest.osm.pbf"
+  },
+  {
+   "id": "br-espirito-santo",
+   "name": "Espírito Santo",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/southeast/espirito-santo-latest.osm.pbf"
+  },
+  {
+   "id": "br-mato-grosso-do-sul",
+   "name": "Mato Grosso do Sul",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/central-west/mato-grosso-do-sul-latest.osm.pbf"
+  },
+  {
+   "id": "br-mato-grosso",
+   "name": "Mato Grosso",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/central-west/mato-grosso-latest.osm.pbf"
+  },
+  {
+   "id": "br-goias",
+   "name": "Goiás",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/central-west/goias-latest.osm.pbf"
+  },
+  {
+   "id": "br-distrito-federal",
+   "name": "Distrito Federal",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/central-west/distrito-federal-latest.osm.pbf"
+  },
+  {
+   "id": "br-acre",
+   "name": "Acre",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/north/acre-latest.osm.pbf"
+  },
+  {
+   "id": "br-amapa",
+   "name": "Amapá",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/north/amapa-latest.osm.pbf"
+  },
+  {
+   "id": "br-amazonas",
+   "name": "Amazonas",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/north/amazonas-latest.osm.pbf"
+  },
+  {
+   "id": "br-para",
+   "name": "Pará",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/north/para-latest.osm.pbf"
+  },
+  {
+   "id": "br-rondonia",
+   "name": "Rondônia",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/north/rondonia-latest.osm.pbf"
+  },
+  {
+   "id": "br-roraima",
+   "name": "Roraima",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/north/roraima-latest.osm.pbf"
+  },
+  {
+   "id": "br-tocantins",
+   "name": "Tocantins",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/north/tocantins-latest.osm.pbf"
+  },
+  {
+   "id": "br-alagoas",
+   "name": "Alagoas",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/alagoas-latest.osm.pbf"
+  },
+  {
+   "id": "br-bahia",
+   "name": "Bahia",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/bahia-latest.osm.pbf"
+  },
+  {
+   "id": "br-ceara",
+   "name": "Ceará",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/ceara-latest.osm.pbf"
+  },
+  {
+   "id": "br-maranhao",
+   "name": "Maranhão",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/maranhao-latest.osm.pbf"
+  },
+  {
+   "id": "br-paraiba",
+   "name": "Paraíba",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/paraiba-latest.osm.pbf"
+  },
+  {
+   "id": "br-pernambuco",
+   "name": "Pernambuco",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/pernambuco-latest.osm.pbf"
+  },
+  {
+   "id": "br-piaui",
+   "name": "Piauí",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/piaui-latest.osm.pbf"
+  },
+  {
+   "id": "br-rio-grande-do-norte",
+   "name": "Rio Grande do Norte",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/rio-grande-do-norte-latest.osm.pbf"
+  },
+  {
+   "id": "br-sergipe",
+   "name": "Sergipe",
+   "country": "BR",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/brazil/northeast/sergipe-latest.osm.pbf"
+  },
+  {
+   "id": "py",
+   "name": "Paraguay",
+   "country": "PY",
+   "url": "https://download.openstreetmap.fr/extracts/south-america/paraguay-latest.osm.pbf"
+  },
+  {
+   "id": "uy",
+   "name": "Uruguay",
+   "country": "UY",
+   "url": "https://download.geofabrik.de/south-america/uruguay-latest.osm.pbf"
+  },
+  {
+   "id": "bo",
+   "name": "Bolivia",
+   "country": "BO",
+   "url": "https://download.geofabrik.de/south-america/bolivia-latest.osm.pbf"
+  }
+ ]
+}
