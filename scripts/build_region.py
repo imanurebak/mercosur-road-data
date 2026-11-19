@@ -52,8 +52,11 @@ def _norm(s):
     return "".join(c for c in s if _ud.category(c) != "Mn").lower()
 
 
-POLICE_WORDS = ("puesto", "control", "posto", "caminer", "rodovi", "gendarmer", "prf", "patrulla",
-                "barrera", "checkpoint", "fiscaliza")
+POLICE_WORDS = ("puesto", "control", "posto", "caminer", "barrera", "checkpoint", "fiscaliza")
+# Sedes, bases y oficinas: no son controles en la ruta (aunque digan "control").
+POLICE_NOT = ("escuadron", "agrupacion", "seccion", "destacamento", "comisaria", "jefatura", "cuartel",
+              "batallon", "delegacion", "unidad regional", "superintendencia", "delegacia", "batalhao",
+              "companhia", "sede", "dependencia", "departamento", "oficina", "division")
 
 
 def police_force(tags, country, region_name):
@@ -89,10 +92,14 @@ def police_force(tags, country, region_name):
 
 
 def is_police_post(tags):
+    """Solo puestos de control reales en la calle o la ruta (no comisarias ni bases)."""
     if tags.get("barrier") == "checkpoint" or tags.get("police") == "checkpoint":
         return True
     if tags.get("amenity") == "police":
         t = _norm(" ".join(tags.get(k, "") for k in ("name", "operator", "police")))
+        words = set(re.findall(r"\w+", t))
+        if any(w in t for w in POLICE_NOT) or "base" in words:
+            return False
         return any(w in t for w in POLICE_WORDS)
     return False
 
@@ -184,12 +191,14 @@ class Handler(osmium.SimpleHandler):
         if ms:
             flat = [c for p in coords for c in p]
             self.speed.append([ms, hw, w.tags.get("name") or w.tags.get("ref") or "", flat])
+        ow = oneway_of(w.tags)
         for i, nd in enumerate(w.nodes):
             if nd.ref in self.points and self.points[nd.ref][0] == "crossing":
                 self.crossing_on_road.add(nd.ref)
-            if nd.ref in self.points and nd.ref not in self.way_bearing:
+            if nd.ref in self.points:
                 a, b = (coords[i - 1], coords[i]) if i > 0 else (coords[0], coords[1])
-                self.way_bearing[nd.ref] = bearing(a, b)
+                # Todas las calles que pasan por el punto, con su sentido.
+                self.way_bearing.setdefault(nd.ref, []).append((bearing(a, b), ow))
 
 
 def distance_m(lat1, lon1, lat2, lon2):
@@ -198,15 +207,42 @@ def distance_m(lat1, lon1, lat2, lon2):
     return math.hypot(dx, dy)
 
 
-def heading(point_id, direction, bearings):
-    if direction in ("forward", "backward") and point_id in bearings:
-        b = bearings[point_id]
-        return int(b if direction == "forward" else (b + 180) % 360)
-    try:  # direccion en grados ("90") o punto cardinal
-        cardinal = {"n": 0, "ne": 45, "e": 90, "se": 135, "s": 180, "sw": 225, "w": 270, "nw": 315}
-        return int(cardinal[direction]) if direction in cardinal else int(float(direction)) % 360
-    except ValueError:
+def oneway_of(t):
+    """1 = mano unica a favor del dibujo, -1 = en contra, 0 = doble mano."""
+    o = t.get("oneway", "")
+    if o in ("yes", "true", "1"):
+        return 1
+    if o == "-1":
         return -1
+    if o == "no":
+        return 0
+    if t.get("junction") in ("roundabout", "circular") or t.get("highway") in ("motorway", "motorway_link"):
+        return 1
+    return 0
+
+
+def heading(point_id, direction, bearings):
+    """
+    Rumbo de los autos que ven el punto (-1 = todos). Con direction
+    forward/backward, grados o punto cardinal se usa eso; si no, solo si esta
+    sobre una calle de mano unica (en una esquina con varias calles no se sabe).
+    """
+    ways = bearings.get(point_id, [])
+    if direction in ("forward", "backward") and ways:
+        b = ways[0][0]
+        return int(b if direction == "forward" else (b + 180) % 360)
+    if direction:
+        try:  # direccion en grados ("90") o punto cardinal
+            cardinal = {"n": 0, "ne": 45, "e": 90, "se": 135, "s": 180, "sw": 225, "w": 270, "nw": 315}
+            return int(cardinal[direction]) if direction in cardinal else int(float(direction)) % 360
+        except ValueError:
+            pass
+    # Mano unica (la misma calle puede venir cortada en dos tramos justo ahi).
+    if ways and all(o != 0 for _, o in ways):
+        heads = [b if o == 1 else (b + 180) % 360 for b, o in ways]
+        if all(min(abs(x - heads[0]), 360 - abs(x - heads[0])) < 45 for x in heads):
+            return int(heads[0])
+    return -1
 
 
 def main():
@@ -233,12 +269,12 @@ def main():
     for s in signals:
         grid.setdefault(cell(s[0], s[1]), []).append(s)
     added = 0
-    for _, lat, lon in sorted(crossings):
+    for pid, lat, lon in sorted(crossings):
         cy, cx = cell(lat, lon)
         near = [s for dy in (-1, 0, 1) for dx in (-1, 0, 1) for s in grid.get((cy + dy, cx + dx), [])]
         if any(distance_m(lat, lon, s[0], s[1]) < 35 for s in near):
             continue
-        point = [lat, lon, -1]
+        point = [lat, lon, heading(pid, "", h.way_bearing)]
         signals.append(point)
         grid.setdefault((cy, cx), []).append(point)
         added += 1
