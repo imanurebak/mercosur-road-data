@@ -38,12 +38,21 @@ def main():
             with open(raw, "rb") as src, gzip.open(packed, "wb", compresslevel=9) as dst:
                 shutil.copyfileobj(src, dst)
             info = json.load(open(raw, encoding="utf-8"))
+            # Red de calles para calcular rutas sin conexion (si falla, la region sale igual).
+            graph = os.path.join(OUT, region["id"] + ".graph.gz")
+            try:
+                subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "build_graph.py"), pbf, graph], check=True)
+            except Exception as e:
+                print("ERROR en la red de calles de", region["id"], e, flush=True)
+                graph = None
             index["regions"].append({
                 "id": region["id"], "name": region["name"], "country": region["country"],
                 "generated": date, "bbox": info["bbox"], "bytes": os.path.getsize(packed),
                 "speed": len(info["speed"]), "signals": len(info["signals"]), "radars": len(info["radars"]),
                 "tolls": len(info.get("tolls", [])), "police": len(info.get("police", [])),
                 "url": RELEASE + region["id"] + ".json.gz",
+                **({"graphUrl": RELEASE + region["id"] + ".graph.gz", "graphBytes": os.path.getsize(graph)}
+                   if graph and os.path.exists(graph) else {}),
             })
         except Exception as e:  # una region que falla no frena las demas
             print("ERROR en", region["id"], e, flush=True)

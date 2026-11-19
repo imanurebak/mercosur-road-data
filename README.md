@@ -62,3 +62,13 @@ Datos © colaboradores de OpenStreetMap, disponibles bajo la
 Los paquetes son una base de datos derivada y se comparten bajo la misma
 licencia. Los datos pueden tener errores u omisiones: la velocidad que manda
 es la de la señal en la calle.
+
+## Red de calles (rutas sin conexión, etapa 1)
+
+Cada región trae además `<id>.graph.gz` (`scripts/build_graph.py`): las
+calles por donde va un auto, con largo, velocidad, sentido, tipo, tierra,
+peaje, rotonda, nombre, dibujo y restricciones de giro, en un formato binario
+compacto ("AHG1", detallado en el script). En el catálogo: `graphUrl` y
+`graphBytes`. Prueba con Misiones: 144.565 esquinas, 191.436 tramos
+(58.234 km), 5,4 MB; San Vicente → Posadas da 198 km por RP13, RN14, RN12 y
+RN105, igual que Valhalla.

@@ -41,7 +41,7 @@ jobs:
           if [ -z "${{ github.event.inputs.regions }}" ]; then
             gh release upload data out/* --clobber
           else
-            gh release upload data out/*.json.gz --clobber
+            gh release upload data out/*.json.gz out/*.graph.gz --clobber
             gh release view data --json assets -q '.assets[].name' | grep -q '^index.json$' || \
               gh release upload data out/index.json --clobber
           fi
