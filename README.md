@@ -29,6 +29,11 @@ en la release [`data`](../../releases/tag/data):
 `sentido`: grados (0 = norte) del tránsito que controla; `-1` si no se sabe
 o controla las dos manos.
 
+`signals` incluye los semáforos de esquina (`highway=traffic_signals`) y
+los **cruces peatonales con semáforo** (`crossing=traffic_signals`) que
+están sobre calles de autos, uno por esquina: un cruce a menos de 35 m de
+otro semáforo ya contado no se agrega.
+
 ## Generar a mano
 
 ```
