@@ -62,33 +62,42 @@ POLICE_NOT = ("escuadron", "agrupacion", "seccion", "destacamento", "comisaria",
 def police_force(tags, country, region_name):
     """(codigo, nombre completo) de la fuerza segun operator/name."""
     t = _norm(" ".join(tags.get(k, "") for k in ("operator", "name", "official_name", "brand")))
+    words = set(re.findall(r"\w+", t))
     if "gendarmer" in t:
         return "GN", "Gendarmería Nacional"
     if "prefectura" in t:
         return "PNA", "Prefectura Naval Argentina"
-    if "policia federal" in t or "pfa" in t.split():
-        return "PFA", "Policía Federal Argentina"
-    if "rodoviaria federal" in t or "prf" in t.split() or "prf " in t or " prf" in t:
+    if "seguridad aeroportuaria" in t or "psa" in words:
+        return "PSA", "Policía de Seguridad Aeroportuaria"
+    if "rodoviaria federal" in t or "prf" in words:
         return "PRF", "Polícia Rodoviária Federal"
+    if "policia federal" in t or "pfa" in words:
+        return ("PF", "Polícia Federal") if country == "BR" else ("PFA", "Policía Federal Argentina")
     if "brigada militar" in t or "comando rodoviario" in t:
         return "BM", "Brigada Militar"
     if "rodoviaria" in t or "policia militar" in t:
         return "PM", "Polícia Militar Rodoviária" if "rodovi" in t else "Polícia Militar"
+    if country == "BR" and ("policia civil" in t or "delegacia" in t):
+        return "PC", "Polícia Civil"
+    if "guarda municipal" in t or "guardia urbana" in t or "municipal" in words:
+        return ("GM", "Guarda Municipal") if country == "BR" else ("MUN", "Policía municipal")
     if "patrulla caminera" in t:
         return "PC", "Patrulla Caminera"
     if "policia caminera" in t:
         return "PC", "Policía Caminera"
+    if country == "BO" and "transito" in t:
+        return "TR", "Tránsito"
     if country == "PY" and "policia nacional" in t:
         return "PN", "Policía Nacional"
-    if "policia" in t or "policía" in t or "police" in t:
+    if any(w in t for w in ("policia", "police", "comisaria", "destacamento", "delegacia")):
         if country == "AR":
             return "POL", f"Policía de {region_name}"
         if country == "BR":
             return "PM", "Polícia Militar"
-        if country == "UY":
-            return "PC", "Policía Caminera"
+        if country == "BO":
+            return "PB", "Policía Boliviana"
         return "PN", "Policía Nacional"
-    return "CTRL", "Control policial"
+    return "CTRL", "Policía"
 
 
 def is_police_post(tags):
@@ -102,6 +111,34 @@ def is_police_post(tags):
             return False
         return any(w in t for w in POLICE_WORDS)
     return False
+
+def is_police_station(tags):
+    """Comisaria, base o destacamento (se ve en el mapa, sin alerta)."""
+    return tags.get("amenity") == "police" and not is_police_post(tags)
+
+
+# Marcas de estaciones de servicio con logo en la app (clave -> palabras a buscar).
+FUEL_BRANDS = [
+    ("ypf", ("ypf",)), ("shell", ("shell", "raizen")), ("axion", ("axion",)), ("puma", ("puma",)),
+    ("gulf", ("gulf",)), ("refinor", ("refinor",)), ("dapsa", ("dapsa",)),
+    ("petrobras", ("petrobras", "br distribuidora", "vibra", "br")), ("ipiranga", ("ipiranga",)),
+    ("ale", ("ale", "alesat")), ("atem", ("atem",)), ("sim", ("sim",)), ("rodoil", ("rodoil",)),
+    ("equador", ("equador",)), ("petropar", ("petropar",)), ("copetrol", ("copetrol",)), ("ancap", ("ancap",)),
+]
+
+
+def fuel_brand(tags):
+    """(clave de la marca o "" si no hay logo, nombre para mostrar)."""
+    t = _norm(" ".join(tags.get(k, "") for k in ("brand", "name", "operator")))
+    words = set(re.findall(r"\w+", t))
+    name = tags.get("name") or tags.get("brand") or ""
+    if "ypfb" in words:
+        return "", name or "YPFB"
+    for key, keys in FUEL_BRANDS:
+        if any((k in words) if (" " not in k and len(k) <= 4) else (k in t) for k in keys):
+            return key, name
+    return "", name
+
 
 
 def toll_price(tags):
@@ -143,6 +180,8 @@ class Handler(osmium.SimpleHandler):
         self.crossing_on_road = set()
         self.tolls = []    # [lat, lon, nombre, precio, moneda]
         self.police = []   # (lat, lon, tags)
+        self.stations = []  # comisarias (lat, lon, tags)
+        self.fuel = []     # estaciones de servicio [lat, lon, marca, nombre]
         self.bbox = [180.0, 90.0, -180.0, -90.0]
 
     def node(self, n):
@@ -162,12 +201,30 @@ class Handler(osmium.SimpleHandler):
                                price[0] if price else 0, price[1] if price else ""])
         if is_police_post(t):
             self.police.append((round(n.location.lat, 6), round(n.location.lon, 6), dict(t)))
+        elif is_police_station(t):
+            self.stations.append((round(n.location.lat, 6), round(n.location.lon, 6), dict(t)))
+        if t.get("amenity") == "fuel":
+            key, label = fuel_brand(t)
+            self.fuel.append([round(n.location.lat, 6), round(n.location.lon, 6), key, label])
         if kind:
             self.points[n.id] = [kind, round(n.location.lat, 6), round(n.location.lon, 6),
                                  direction_of(t), parse_speed(t.get("maxspeed")) or 0]
 
     def way(self, w):
         # Puestos de control dibujados como area: su centro.
+        # Comisarias y estaciones de servicio dibujadas como area: su centro.
+        if w.is_closed() and (is_police_station(w.tags) or w.tags.get("amenity") == "fuel"):
+            try:
+                pts = [(nd.lat, nd.lon) for nd in w.nodes]
+                la = round(sum(p[0] for p in pts) / len(pts), 6)
+                lo = round(sum(p[1] for p in pts) / len(pts), 6)
+                if w.tags.get("amenity") == "fuel":
+                    key, label = fuel_brand(w.tags)
+                    self.fuel.append([la, lo, key, label])
+                else:
+                    self.stations.append((la, lo, dict(w.tags)))
+            except osmium.InvalidLocationError:
+                pass
         if is_police_post(w.tags) and w.is_closed():
             try:
                 pts = [(nd.lat, nd.lon) for nd in w.nodes]
@@ -284,9 +341,11 @@ def main():
         code, full = police_force(tags, country, name)
         police.append([lat, lon, code, full])
     police = dedupe(police, 150)
+    stations = dedupe([[la, lo, *police_force(t, country, name)] for la, lo, t in h.stations], 80)
+    fuel = dedupe(h.fuel, 40)
     data = {
         "id": region_id, "name": name, "country": country, "generated": date,
-        "tolls": tolls, "police": police,
+        "tolls": tolls, "police": police, "stations": stations, "fuel": fuel,
         "source": "© colaboradores de OpenStreetMap (ODbL)",
         "bbox": [round(x, 4) for x in h.bbox],
         "speed": h.speed, "signals": signals, "radars": radars,
@@ -294,7 +353,7 @@ def main():
     with open(out, "w") as f:
         json.dump(data, f, separators=(",", ":"), ensure_ascii=False)
     print(f"{region_id}: {len(h.speed)} tramos con maxima, {len(signals)} semaforos "
-          f"({added} cruces peatonales), {len(radars)} radares, {len(tolls)} peajes, {len(police)} controles")
+          f"({added} cruces peatonales), {len(radars)} radares, {len(tolls)} peajes, {len(police)} controles, {len(stations)} comisarías, {len(fuel)} estaciones de servicio")
 
 
 if __name__ == "__main__":
