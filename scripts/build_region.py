@@ -43,6 +43,90 @@ def direction_of(tags):
     return (tags.get("traffic_signals:direction") or tags.get("direction") or "").strip().lower()
 
 
+# ---- Peajes y controles policiales (comun a build_osm.py y build_region.py) ----
+import unicodedata as _ud
+
+
+def _norm(s):
+    s = _ud.normalize("NFD", s or "")
+    return "".join(c for c in s if _ud.category(c) != "Mn").lower()
+
+
+POLICE_WORDS = ("puesto", "control", "posto", "caminer", "rodovi", "gendarmer", "prf", "patrulla",
+                "barrera", "checkpoint", "fiscaliza")
+
+
+def police_force(tags, country, region_name):
+    """(codigo, nombre completo) de la fuerza segun operator/name."""
+    t = _norm(" ".join(tags.get(k, "") for k in ("operator", "name", "official_name", "brand")))
+    if "gendarmer" in t:
+        return "GN", "Gendarmería Nacional"
+    if "prefectura" in t:
+        return "PNA", "Prefectura Naval Argentina"
+    if "policia federal" in t or "pfa" in t.split():
+        return "PFA", "Policía Federal Argentina"
+    if "rodoviaria federal" in t or "prf" in t.split() or "prf " in t or " prf" in t:
+        return "PRF", "Polícia Rodoviária Federal"
+    if "brigada militar" in t or "comando rodoviario" in t:
+        return "BM", "Brigada Militar"
+    if "rodoviaria" in t or "policia militar" in t:
+        return "PM", "Polícia Militar Rodoviária" if "rodovi" in t else "Polícia Militar"
+    if "patrulla caminera" in t:
+        return "PC", "Patrulla Caminera"
+    if "policia caminera" in t:
+        return "PC", "Policía Caminera"
+    if country == "PY" and "policia nacional" in t:
+        return "PN", "Policía Nacional"
+    if "policia" in t or "policía" in t or "police" in t:
+        if country == "AR":
+            return "POL", f"Policía de {region_name}"
+        if country == "BR":
+            return "PM", "Polícia Militar"
+        if country == "UY":
+            return "PC", "Policía Caminera"
+        return "PN", "Policía Nacional"
+    return "CTRL", "Control policial"
+
+
+def is_police_post(tags):
+    if tags.get("barrier") == "checkpoint" or tags.get("police") == "checkpoint":
+        return True
+    if tags.get("amenity") == "police":
+        t = _norm(" ".join(tags.get(k, "") for k in ("name", "operator", "police")))
+        return any(w in t for w in POLICE_WORDS)
+    return False
+
+
+def toll_price(tags):
+    """'1900 ARS' -> (1900.0, 'ARS'); None si no esta cargado."""
+    import re as _re
+    v = tags.get("charge") or tags.get("toll:charge") or tags.get("charge:motorcar") or ""
+    m = _re.search(r"(\d+(?:[.,]\d+)?)\s*([A-Za-z]{3})?", v)
+    if not m:
+        return None
+    return float(m.group(1).replace(",", ".")), (m.group(2) or "").upper()
+
+
+def _dist(a, b):
+    dy = (a[0] - b[0]) * 111320
+    dx = (a[1] - b[1]) * 111320 * math.cos(math.radians(a[0]))
+    return math.hypot(dx, dy)
+
+
+def dedupe(points, radius_m):
+    """Uno por lugar: las cabinas de cada mano o varios nodos del mismo puesto."""
+    out = []
+    grid = {}
+    for p in points:
+        cy, cx = int(math.floor(p[0] * 111320 / 500)), int(math.floor(p[1] * 111320 / 500))
+        near = [q for dy in (-1, 0, 1) for dx in (-1, 0, 1) for q in grid.get((cy + dy, cx + dx), [])]
+        if any(_dist(p, q) < radius_m for q in near):
+            continue
+        out.append(p)
+        grid.setdefault((cy, cx), []).append(p)
+    return out
+
+
 class Handler(osmium.SimpleHandler):
     def __init__(self):
         super().__init__()
@@ -50,6 +134,8 @@ class Handler(osmium.SimpleHandler):
         self.points = {}   # id -> [tipo, lat, lon, direccion, maxima]
         self.way_bearing = {}
         self.crossing_on_road = set()
+        self.tolls = []    # [lat, lon, nombre, precio, moneda]
+        self.police = []   # (lat, lon, tags)
         self.bbox = [180.0, 90.0, -180.0, -90.0]
 
     def node(self, n):
@@ -63,11 +149,25 @@ class Handler(osmium.SimpleHandler):
             # Cruce peatonal con semaforo (highway=crossing): tambien frena a
             # los autos si esta sobre una calle (se verifica en way()).
             kind = "crossing"
+        if t.get("barrier") == "toll_booth":
+            price = toll_price(t)
+            self.tolls.append([round(n.location.lat, 6), round(n.location.lon, 6), t.get("name", ""),
+                               price[0] if price else 0, price[1] if price else ""])
+        if is_police_post(t):
+            self.police.append((round(n.location.lat, 6), round(n.location.lon, 6), dict(t)))
         if kind:
             self.points[n.id] = [kind, round(n.location.lat, 6), round(n.location.lon, 6),
                                  direction_of(t), parse_speed(t.get("maxspeed")) or 0]
 
     def way(self, w):
+        # Puestos de control dibujados como area: su centro.
+        if is_police_post(w.tags) and w.is_closed():
+            try:
+                pts = [(nd.lat, nd.lon) for nd in w.nodes]
+                self.police.append((round(sum(p[0] for p in pts) / len(pts), 6),
+                                    round(sum(p[1] for p in pts) / len(pts), 6), dict(w.tags)))
+            except osmium.InvalidLocationError:
+                pass
         hw = w.tags.get("highway")
         if hw not in ROADS:
             return
@@ -142,8 +242,15 @@ def main():
         signals.append(point)
         grid.setdefault((cy, cx), []).append(point)
         added += 1
+    tolls = dedupe(h.tolls, 300)
+    police = []
+    for lat, lon, tags in h.police:
+        code, full = police_force(tags, country, name)
+        police.append([lat, lon, code, full])
+    police = dedupe(police, 150)
     data = {
         "id": region_id, "name": name, "country": country, "generated": date,
+        "tolls": tolls, "police": police,
         "source": "© colaboradores de OpenStreetMap (ODbL)",
         "bbox": [round(x, 4) for x in h.bbox],
         "speed": h.speed, "signals": signals, "radars": radars,
@@ -151,7 +258,7 @@ def main():
     with open(out, "w") as f:
         json.dump(data, f, separators=(",", ":"), ensure_ascii=False)
     print(f"{region_id}: {len(h.speed)} tramos con maxima, {len(signals)} semaforos "
-          f"({added} cruces peatonales), {len(radars)} radares")
+          f"({added} cruces peatonales), {len(radars)} radares, {len(tolls)} peajes, {len(police)} controles")
 
 
 if __name__ == "__main__":

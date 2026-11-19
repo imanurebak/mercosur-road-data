@@ -42,6 +42,7 @@ def main():
                 "id": region["id"], "name": region["name"], "country": region["country"],
                 "generated": date, "bbox": info["bbox"], "bytes": os.path.getsize(packed),
                 "speed": len(info["speed"]), "signals": len(info["signals"]), "radars": len(info["radars"]),
+                "tolls": len(info.get("tolls", [])), "police": len(info.get("police", [])),
                 "url": RELEASE + region["id"] + ".json.gz",
             })
         except Exception as e:  # una region que falla no frena las demas

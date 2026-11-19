@@ -34,6 +34,16 @@ los **cruces peatonales con semáforo** (`crossing=traffic_signals`) que
 están sobre calles de autos, uno por esquina: un cruce a menos de 35 m de
 otro semáforo ya contado no se agrega.
 
+`tolls`: `[[lat, lon, "nombre", precio, "moneda"], ...]` cabinas de peaje
+(`barrier=toll_booth`), una por plaza (300 m); `precio` 0 si no está
+cargado (`charge`).
+
+`police`: `[[lat, lon, "código", "nombre completo"], ...]` puestos de
+control policial (`barrier=checkpoint`, `police=checkpoint` o
+`amenity=police` con nombre de puesto/control/caminera…), con la fuerza
+según `operator`/`name`: GN, PNA, PFA, POL (provincial), PRF, BM, PM, PC,
+PN o CTRL (sin identificar).
+
 ## Generar a mano
 
 ```
