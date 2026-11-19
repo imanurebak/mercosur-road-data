@@ -6,7 +6,7 @@ navegación: **velocidades máximas** (con el trazado de cada tramo),
 **semáforos** y **radares** de velocidad, con el sentido que controlan
 cuando está cargado.
 
-Se generan **cada lunes** a partir de los extractos diarios de
+Se generan **los lunes y jueves** de madrugada a partir de los extractos diarios de
 OpenStreetMap ([openstreetmap.fr](https://download.openstreetmap.fr/extracts/south-america/),
 [Geofabrik](https://download.geofabrik.de/south-america/)) y se publican
 en la release [`data`](../../releases/tag/data):
@@ -52,7 +52,7 @@ python3 scripts/build_all.py ar-misiones py   # sin argumentos: todas
 ```
 
 Las regiones están en `regions.json`. La tarea `.github/workflows/build.yml`
-corre cada lunes y también se puede lanzar a mano (Actions → "Generar
+corre los lunes y jueves y también se puede lanzar a mano (Actions → "Generar
 paquetes de regiones" → Run workflow).
 
 ## Licencia

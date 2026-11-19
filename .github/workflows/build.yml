@@ -2,7 +2,7 @@ name: Generar paquetes de regiones
 
 on:
   schedule:
-    - cron: "17 5 * * 1"   # lunes 05:17 UTC (02:17 en Argentina)
+    - cron: "17 5 * * 1,4"   # lunes y jueves 05:17 UTC (02:17 en Argentina)
   workflow_dispatch:
     inputs:
       regions:
