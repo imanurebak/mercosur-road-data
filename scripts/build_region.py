@@ -14,6 +14,7 @@ import os
 import osmium
 
 import official_speeds
+import signal_dirs
 
 ROADS = {"motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential",
          "living_street", "service", "motorway_link", "trunk_link", "primary_link", "secondary_link",
@@ -187,6 +188,7 @@ class Handler(osmium.SimpleHandler):
         self.stations = []  # comisarias (lat, lon, tags)
         self.fuel = []     # estaciones de servicio [lat, lon, marca, nombre]
         self.places = []   # pueblos y ciudades (lon, lat, tipo)
+        self.sig_ctx = {}  # semaforo -> [(ids de la calle, coords, indice, mano unica)] (para deducir su mano)
         self.no_speed = []  # rutas nacionales argentinas sin maxima: (numero, tipo, nombre, coords)
         self.bbox = [180.0, 90.0, -180.0, -90.0]
 
@@ -261,7 +263,11 @@ class Handler(osmium.SimpleHandler):
             if number and not official_speeds.looks_urban(w.tags):
                 self.no_speed.append((number, hw, w.tags.get("name") or w.tags.get("ref") or "", coords))
         ow = oneway_of(w.tags)
+        refs = None
         for i, nd in enumerate(w.nodes):
+            if nd.ref in self.points and self.points[nd.ref][0] in ("signal", "crossing"):
+                refs = refs or [n.ref for n in w.nodes]
+                self.sig_ctx.setdefault(nd.ref, []).append((refs, coords, i, ow))
             if nd.ref in self.points and self.points[nd.ref][0] == "crossing":
                 self.crossing_on_road.add(nd.ref)
             if nd.ref in self.points:
@@ -354,8 +360,12 @@ def main():
     h = Handler()
     h.apply_file(pbf, locations=True, idx="flex_mem")
     signals, radars, crossings = [], [], []
+    # Semaforos "antes de la esquina" sin sentido: el de tu mano es el que va hacia la esquina.
+    inferred = signal_dirs.infer(pbf, h.sig_ctx, ROADS)
     for pid, (kind, lat, lon, direction, maxspeed) in h.points.items():
         head = heading(pid, direction, h.way_bearing)
+        if head == -1 and pid in inferred:
+            head = inferred[pid]
         if kind == "signal":
             signals.append([lat, lon, head])
         elif kind == "radar":
@@ -378,7 +388,8 @@ def main():
         near = [s for dy in (-1, 0, 1) for dx in (-1, 0, 1) for s in grid.get((cy + dy, cx + dx), [])]
         if any(distance_m(lat, lon, s[0], s[1]) < 35 for s in near):
             continue
-        point = [lat, lon, heading(pid, "", h.way_bearing)]
+        head = heading(pid, "", h.way_bearing)
+        point = [lat, lon, inferred.get(pid, head) if head == -1 else head]
         signals.append(point)
         grid.setdefault((cy, cx), []).append(point)
         added += 1
