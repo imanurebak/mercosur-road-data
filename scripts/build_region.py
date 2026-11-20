@@ -15,6 +15,7 @@ import osmium
 
 import official_speeds
 import signal_dirs
+import search_places
 
 ROADS = {"motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential",
          "living_street", "service", "motorway_link", "trunk_link", "primary_link", "secondary_link",
@@ -187,6 +188,7 @@ class Handler(osmium.SimpleHandler):
         self.police = []   # (lat, lon, tags)
         self.stations = []  # comisarias (lat, lon, tags)
         self.fuel = []     # estaciones de servicio [lat, lon, marca, nombre]
+        self.search = []   # lugares para buscar sin internet [lat, lon, nombre, tipo]
         self.places = []   # pueblos y ciudades (lon, lat, tipo)
         self.sig_ctx = {}  # semaforo -> [(ids de la calle, coords, indice, mano unica)] (para deducir su mano)
         self.no_speed = []  # rutas nacionales argentinas sin maxima: (numero, tipo, nombre, coords)
@@ -213,6 +215,9 @@ class Handler(osmium.SimpleHandler):
             self.stations.append((round(n.location.lat, 6), round(n.location.lon, 6), dict(t)))
         if t.get("place") in official_speeds.URBAN_RADIUS_M:
             self.places.append((n.location.lon, n.location.lat, t.get("place")))
+        sk = search_places.kind_of(t)
+        if sk:
+            self.search.append([round(n.location.lat, 6), round(n.location.lon, 6), t.get("name"), sk])
         if t.get("amenity") == "fuel":
             key, label = fuel_brand(t)
             self.fuel.append([round(n.location.lat, 6), round(n.location.lon, 6), key, label])
@@ -235,6 +240,16 @@ class Handler(osmium.SimpleHandler):
                     self.stations.append((la, lo, dict(w.tags)))
             except osmium.InvalidLocationError:
                 pass
+        # Lugares para buscar dibujados como area (hospital, supermercado, parque…): su centro.
+        if w.is_closed():
+            sk = search_places.kind_of(w.tags)
+            if sk:
+                try:
+                    pts = [(nd.lat, nd.lon) for nd in w.nodes]
+                    self.search.append([round(sum(p[0] for p in pts) / len(pts), 6),
+                                        round(sum(p[1] for p in pts) / len(pts), 6), w.tags.get("name"), sk])
+                except osmium.InvalidLocationError:
+                    pass
         if is_police_post(w.tags) and w.is_closed():
             try:
                 pts = [(nd.lat, nd.lon) for nd in w.nodes]
@@ -401,10 +416,11 @@ def main():
     police = dedupe(police, 150)
     stations = dedupe([[la, lo, *police_force(t, country, name)] for la, lo, t in h.stations], 80)
     fuel = dedupe(h.fuel, 40)
+    places = search_places.dedupe(h.search, 150)
     official = add_official_speeds(h, region_id, country)
     data = {
         "id": region_id, "name": name, "country": country, "generated": date,
-        "tolls": tolls, "police": police, "stations": stations, "fuel": fuel,
+        "tolls": tolls, "police": police, "stations": stations, "fuel": fuel, "places": places,
         "source": "© colaboradores de OpenStreetMap (ODbL)" + (
             "; limites oficiales ANTT / Rio / São Paulo via Pardal (ODbL)" if country == "BR" and region_id not in OSM_ONLY
             else "; tipo de via de rutas nacionales: IGN / Vialidad Nacional" if country == "AR" and region_id not in OSM_ONLY
