@@ -5,7 +5,7 @@ Cada lugar: [lat, lon, nombre, tipo]. El tipo es el valor de OSM ("city",
 "town", "hospital", "supermarket"…), para ordenar (la ciudad primero) y
 mostrar.
 """
-PLACES = {"city", "town", "village", "hamlet", "suburb", "neighbourhood", "quarter", "locality"}
+PLACES = {"city", "town", "municipality", "village", "hamlet", "suburb", "neighbourhood", "quarter", "locality"}
 AMENITY = {"hospital", "clinic", "pharmacy", "bank", "school", "university", "college", "police", "townhall",
            "bus_station", "restaurant", "cafe", "fast_food", "marketplace", "place_of_worship", "library",
            "courthouse", "post_office", "fire_station", "cinema", "theatre", "community_centre", "ice_cream",
@@ -57,7 +57,7 @@ def dedupe(items, dist_m):
 
 # ---- Calles con nombre (sin numero) ----
 
-TOWN_KINDS = {"city", "town", "village", "hamlet"}
+TOWN_KINDS = {"city", "town", "municipality", "village", "hamlet"}
 
 
 class Streets:
