@@ -189,6 +189,7 @@ class Handler(osmium.SimpleHandler):
         self.stations = []  # comisarias (lat, lon, tags)
         self.fuel = []     # estaciones de servicio [lat, lon, marca, nombre]
         self.search = []   # lugares para buscar sin internet [lat, lon, nombre, tipo]
+        self.streets = search_places.Streets()  # calles con nombre (sin numero)
         self.places = []   # pueblos y ciudades (lon, lat, tipo)
         self.sig_ctx = {}  # semaforo -> [(ids de la calle, coords, indice, mano unica)] (para deducir su mano)
         self.no_speed = []  # rutas nacionales argentinas sin maxima: (numero, tipo, nombre, coords)
@@ -218,6 +219,7 @@ class Handler(osmium.SimpleHandler):
         sk = search_places.kind_of(t)
         if sk:
             self.search.append([round(n.location.lat, 6), round(n.location.lon, 6), t.get("name"), sk])
+        self.streets.add_town(t, n.location.lat, n.location.lon)
         if t.get("amenity") == "fuel":
             key, label = fuel_brand(t)
             self.fuel.append([round(n.location.lat, 6), round(n.location.lon, 6), key, label])
@@ -269,6 +271,7 @@ class Handler(osmium.SimpleHandler):
         for lon, lat in coords:
             b = self.bbox
             b[0], b[1], b[2], b[3] = min(b[0], lon), min(b[1], lat), max(b[2], lon), max(b[3], lat)
+        self.streets.add_way(w.tags.get("name"), coords)
         ms = parse_speed(w.tags.get("maxspeed"))
         if ms:
             flat = [c for p in coords for c in p]
@@ -416,7 +419,7 @@ def main():
     police = dedupe(police, 150)
     stations = dedupe([[la, lo, *police_force(t, country, name)] for la, lo, t in h.stations], 80)
     fuel = dedupe(h.fuel, 40)
-    places = search_places.dedupe(h.search, 150)
+    places = search_places.dedupe(h.search, 150) + h.streets.rows()
     official = add_official_speeds(h, region_id, country)
     data = {
         "id": region_id, "name": name, "country": country, "generated": date,
