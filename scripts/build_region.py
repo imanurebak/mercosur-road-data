@@ -9,7 +9,11 @@ import math
 import re
 import sys
 
+import os
+
 import osmium
+
+import official_speeds
 
 ROADS = {"motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential",
          "living_street", "service", "motorway_link", "trunk_link", "primary_link", "secondary_link",
@@ -182,6 +186,8 @@ class Handler(osmium.SimpleHandler):
         self.police = []   # (lat, lon, tags)
         self.stations = []  # comisarias (lat, lon, tags)
         self.fuel = []     # estaciones de servicio [lat, lon, marca, nombre]
+        self.places = []   # pueblos y ciudades (lon, lat, tipo)
+        self.no_speed = []  # rutas nacionales argentinas sin maxima: (numero, tipo, nombre, coords)
         self.bbox = [180.0, 90.0, -180.0, -90.0]
 
     def node(self, n):
@@ -203,6 +209,8 @@ class Handler(osmium.SimpleHandler):
             self.police.append((round(n.location.lat, 6), round(n.location.lon, 6), dict(t)))
         elif is_police_station(t):
             self.stations.append((round(n.location.lat, 6), round(n.location.lon, 6), dict(t)))
+        if t.get("place") in official_speeds.URBAN_RADIUS_M:
+            self.places.append((n.location.lon, n.location.lat, t.get("place")))
         if t.get("amenity") == "fuel":
             key, label = fuel_brand(t)
             self.fuel.append([round(n.location.lat, 6), round(n.location.lon, 6), key, label])
@@ -248,6 +256,10 @@ class Handler(osmium.SimpleHandler):
         if ms:
             flat = [c for p in coords for c in p]
             self.speed.append([ms, hw, w.tags.get("name") or w.tags.get("ref") or "", flat])
+        elif hw in ("motorway", "trunk", "primary", "secondary"):
+            number = official_speeds.national_number(w.tags)
+            if number and not official_speeds.looks_urban(w.tags):
+                self.no_speed.append((number, hw, w.tags.get("name") or w.tags.get("ref") or "", coords))
         ow = oneway_of(w.tags)
         for i, nd in enumerate(w.nodes):
             if nd.ref in self.points and self.points[nd.ref][0] == "crossing":
@@ -302,6 +314,41 @@ def heading(point_id, direction, bearings):
     return -1
 
 
+WORK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "work")
+
+# Regiones donde se deja solo lo de OpenStreetMap (ninguna por ahora).
+OSM_ONLY = set()
+
+
+def add_official_speeds(h, region_id, country):
+    """Suma a h.speed los tramos de fuentes oficiales (quinto valor = fuente).
+
+    - Brasil: placas ANTT y limites oficiales de Rio y Sao Paulo (via
+      Pardal), con el sentido como sexto valor (-1 = los dos). La app los
+      prefiere a los de OpenStreetMap en el mismo lugar.
+    - Argentina: rutas nacionales sin maxima en OSM, con la de la ley segun
+      el tipo de via del IGN (fuera de pueblos).
+    Si una fuente no responde, el paquete sale igual.
+    """
+    if region_id in OSM_ONLY:
+        return "solo OpenStreetMap"
+    os.makedirs(WORK, exist_ok=True)
+    try:
+        if country == "BR":
+            rows = official_speeds.brazil(region_id, WORK)
+            for kmh, hw, source, direction, coords in rows:
+                h.speed.append([kmh, hw or "trunk", "", [round(c, 6) for p in coords for c in p], source, direction])
+            return f"{len(rows)} oficiales de Brasil"
+        if country == "AR" and h.no_speed:
+            routes = official_speeds.ArgentinaRoutes(WORK)
+            rows = official_speeds.argentina_legal_rows(h.no_speed, routes, official_speeds.Towns(h.places))
+            h.speed.extend(rows)
+            return f"{len(rows)} de rutas nacionales con la maxima de la ley"
+    except Exception as e:  # sin la fuente oficial, solo OpenStreetMap
+        print("Sin velocidades oficiales:", e, flush=True)
+    return "solo OpenStreetMap"
+
+
 def main():
     pbf, out, region_id, name, country, date = sys.argv[1:7]
     h = Handler()
@@ -343,16 +390,20 @@ def main():
     police = dedupe(police, 150)
     stations = dedupe([[la, lo, *police_force(t, country, name)] for la, lo, t in h.stations], 80)
     fuel = dedupe(h.fuel, 40)
+    official = add_official_speeds(h, region_id, country)
     data = {
         "id": region_id, "name": name, "country": country, "generated": date,
         "tolls": tolls, "police": police, "stations": stations, "fuel": fuel,
-        "source": "© colaboradores de OpenStreetMap (ODbL)",
+        "source": "© colaboradores de OpenStreetMap (ODbL)" + (
+            "; limites oficiales ANTT / Rio / São Paulo via Pardal (ODbL)" if country == "BR" and region_id not in OSM_ONLY
+            else "; tipo de via de rutas nacionales: IGN / Vialidad Nacional" if country == "AR" and region_id not in OSM_ONLY
+            else ""),
         "bbox": [round(x, 4) for x in h.bbox],
         "speed": h.speed, "signals": signals, "radars": radars,
     }
     with open(out, "w") as f:
         json.dump(data, f, separators=(",", ":"), ensure_ascii=False)
-    print(f"{region_id}: {len(h.speed)} tramos con maxima, {len(signals)} semaforos "
+    print(f"{region_id}: {len(h.speed)} tramos con maxima ({official}), {len(signals)} semaforos "
           f"({added} cruces peatonales), {len(radars)} radares, {len(tolls)} peajes, {len(police)} controles, {len(stations)} comisarías, {len(fuel)} estaciones de servicio")
 
 

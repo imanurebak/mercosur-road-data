@@ -26,6 +26,22 @@ en la release [`data`](../../releases/tag/data):
 }
 ```
 
+Cada tramo de `speed` puede traer dos valores más: `fuente` (quinto) y
+`sentido` (sexto, solo en placas de un solo sentido). Sin quinto valor el
+tramo es de OpenStreetMap.
+
+- `"ANTT"`, `"RIO"`, `"CET-SP"` (Brasil): límites oficiales (placas de las
+  concesiones federales de la ANTT y velocidades reglamentadas de Río de
+  Janeiro y São Paulo), tomados del proyecto abierto
+  [Pardal](https://github.com/Murkiriel/pardal) (ODbL). Una placa baja (40
+  o menos) se corta a 1,5 km. Las apps deberían preferirlos a OpenStreetMap
+  en el mismo lugar.
+- `"ley"` (Argentina): tramo de ruta nacional **sin** velocidad en
+  OpenStreetMap, con la máxima de la Ley 24.449 según el tipo de vía de la
+  capa de rutas nacionales del IGN / Vialidad Nacional (ruta 110, autovía
+  120, autopista 130). No se completa dentro de pueblos ni en avenidas o
+  rotondas. Es aproximada: manda el cartel.
+
 `sentido`: grados (0 = norte) del tránsito que controla; `-1` si no se sabe
 o controla las dos manos.
 
