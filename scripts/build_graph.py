@@ -8,7 +8,7 @@ esquinas guarda largo, velocidad, sentido, tipo de calle, si es de tierra, si
 tiene peaje, si es rotonda, el nombre y el dibujo (para mostrarlo en el mapa
 y armar las indicaciones de giro).
 
-Uso: build_graph.py region.osm.pbf salida.graph.gz
+Uso: build_graph.py region.osm.pbf salida.graph.gz [principales.main.graph.gz]
 
 Formato "AHG1" (little endian, todo dentro de un gzip):
   cabecera: b"AHG1", version u16, nodos u32, tramos u32, nombres u32,
@@ -252,6 +252,26 @@ def main():
         if e_from is not None and e_to is not None:
             restrictions.append((e_from, index[via], e_to, kind))
 
+    write(out_path, graph_ids, loc, names, edges, restrictions)
+    # Version chica: solo rutas y avenidas principales (autopista a terciaria)
+    # y balsas, para las regiones del medio de un viaje largo (se lee rapido).
+    if len(sys.argv) > 3:
+        main_edges, remap_edge = [], {}
+        for i, e in enumerate(edges):
+            if e[5] <= 9 or e[5] == 16:
+                remap_edge[i] = len(main_edges)
+                main_edges.append(e)
+        used = sorted({e[0] for e in main_edges} | {e[1] for e in main_edges})
+        new_index = {old: new for new, old in enumerate(used)}
+        main_ids = [graph_ids[i] for i in used]
+        main_edges = [(new_index[a], new_index[b], dm, kmh, fl, cls, nid, shape)
+                      for a, b, dm, kmh, fl, cls, nid, shape in main_edges]
+        main_restr = [(remap_edge[f], new_index[v], remap_edge[t], k) for f, v, t, k in restrictions
+                      if f in remap_edge and t in remap_edge and v in new_index]
+        write(sys.argv[3], main_ids, loc, names, main_edges, main_restr)
+
+
+def write(out_path, graph_ids, loc, names, edges, restrictions):
     lats = [loc[n][0] for n in graph_ids]
     lons = [loc[n][1] for n in graph_ids]
     body = bytearray()
@@ -282,7 +302,7 @@ def main():
         f.write(bytes(body))
 
     total_km = sum(e[2] for e in edges) / 10_000
-    print(f"grafo: {len(graph_ids)} nodos, {len(edges)} tramos ({total_km:.0f} km), {len(names)} nombres, "
+    print(f"{out_path}: {len(graph_ids)} nodos, {len(edges)} tramos ({total_km:.0f} km), {len(names)} nombres, "
           f"{len(restrictions)} restricciones de giro, {len(body) / 1e6:.1f} MB sin comprimir")
 
 

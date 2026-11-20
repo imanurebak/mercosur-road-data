@@ -40,8 +40,9 @@ def main():
             info = json.load(open(raw, encoding="utf-8"))
             # Red de calles para calcular rutas sin conexion (si falla, la region sale igual).
             graph = os.path.join(OUT, region["id"] + ".graph.gz")
+            main_graph = os.path.join(OUT, region["id"] + ".main.graph.gz")
             try:
-                subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "build_graph.py"), pbf, graph], check=True)
+                subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "build_graph.py"), pbf, graph, main_graph], check=True)
             except Exception as e:
                 print("ERROR en la red de calles de", region["id"], e, flush=True)
                 graph = None
@@ -53,6 +54,8 @@ def main():
                 "url": RELEASE + region["id"] + ".json.gz",
                 **({"graphUrl": RELEASE + region["id"] + ".graph.gz", "graphBytes": os.path.getsize(graph)}
                    if graph and os.path.exists(graph) else {}),
+                **({"mainUrl": RELEASE + region["id"] + ".main.graph.gz", "mainBytes": os.path.getsize(main_graph)}
+                   if graph and os.path.exists(main_graph) else {}),
             })
         except Exception as e:  # una region que falla no frena las demas
             print("ERROR en", region["id"], e, flush=True)
